@@ -9,8 +9,9 @@ const openaiApiKey = process.env.OPENAI_API_KEY;
 module.exports = async (req, res) => {
   if (req.method === 'POST') {
     try {
+      // Proses update dari Telegram
       bot.processUpdate(req.body);
-      res.status(200).json({ message: 'OK' });
+      res.status(200).json({ ok: true });
     } catch (error) {
       console.error('Error processing update:', error.message);
       res.status(500).json({ error: 'Internal Server Error' });
@@ -43,15 +44,7 @@ bot.on('message', async (msg) => {
     const reply = response.data.choices[0].message.content;
     bot.sendMessage(chatId, reply);
   } catch (error) {
-    console.error('Error:', error.message);
+    console.error('Error calling OpenAI:', error.message);
     bot.sendMessage(chatId, 'Maaf, ada kesalahan. Coba lagi nanti.');
   }
-});
-
-// Set webhook saat deploy (opsional, kita lakukan manual)
-const vercelUrl = process.env.VERCEL_URL || 'https://chat-gpt-<hash>.vercel.app';
-bot.setWebHook(`${vercelUrl}/api`).then(() => {
-  console.log(`Webhook set to ${vercelUrl}/api`);
-}).catch(err => {
-  console.error('Failed to set webhook:', err.message);
 });
