@@ -4,28 +4,32 @@ const TelegramBot = require('node-telegram-bot-api');
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 3000;
-
-// Inisialisasi Telegram Bot
-const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: false }); // Polling dimatikan, pakai webhook
+const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: false });
 const openaiApiKey = process.env.OPENAI_API_KEY;
 
-// Middleware untuk parsing JSON
 app.use(express.json());
 
-// Endpoint untuk webhook Telegram
-app.post('/webhook', (req, res) => {
-  bot.processUpdate(req.body);
-  res.sendStatus(200);
-});
+// Fungsi utama untuk Vercel
+module.exports = async (req, res) => {
+  if (req.method === 'POST') {
+    try {
+      bot.processUpdate(req.body);
+      res.status(200).send('OK');
+    } catch (error) {
+      console.error('Error processing update:', error);
+      res.status(500).send('Error');
+    }
+  } else {
+    res.status(200).send('Bot is running');
+  }
+};
 
-// Event saat pesan diterima
+// Logika bot
 bot.on('message', async (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
 
   try {
-    // Panggil OpenAI API untuk respons mirip ChatGPT
     const response = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
@@ -48,14 +52,10 @@ bot.on('message', async (msg) => {
   }
 });
 
-// Jalankan server
-app.listen(port, () => {
-  console.log(`Server berjalan di port ${port}`);
-  // Set webhook saat server mulai (opsional, akan disesuaikan setelah deploy)
-  const webhookUrl = `${process.env.APP_URL}/webhook`;
-  bot.setWebHook(webhookUrl).then(() => {
-    console.log(`Webhook diatur ke ${webhookUrl}`);
-  }).catch(err => {
-    console.error('Gagal mengatur webhook:', err.message);
-  });
+// Atur webhook saat pertama kali deploy (opsional, akan kita lakukan manual)
+const vercelUrl = process.env.VERCEL_URL || 'https://your-vercel-app.vercel.app';
+bot.setWebHook(`${vercelUrl}/api`).then(() => {
+  console.log(`Webhook set to ${vercelUrl}/api`);
+}).catch(err => {
+  console.error('Failed to set webhook:', err.message);
 });
