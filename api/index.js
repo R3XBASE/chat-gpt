@@ -1,26 +1,22 @@
-const express = require('express');
 const axios = require('axios');
 const TelegramBot = require('node-telegram-bot-api');
 require('dotenv').config();
 
-const app = express();
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: false });
 const openaiApiKey = process.env.OPENAI_API_KEY;
 
-app.use(express.json());
-
-// Fungsi utama untuk Vercel
+// Handler untuk Vercel
 module.exports = async (req, res) => {
   if (req.method === 'POST') {
     try {
       bot.processUpdate(req.body);
-      res.status(200).send('OK');
+      res.status(200).json({ message: 'OK' });
     } catch (error) {
-      console.error('Error processing update:', error);
-      res.status(500).send('Error');
+      console.error('Error processing update:', error.message);
+      res.status(500).json({ error: 'Internal Server Error' });
     }
   } else {
-    res.status(200).send('Bot is running');
+    res.status(200).json({ message: 'Bot is running' });
   }
 };
 
@@ -52,8 +48,8 @@ bot.on('message', async (msg) => {
   }
 });
 
-// Atur webhook saat pertama kali deploy (opsional, akan kita lakukan manual)
-const vercelUrl = process.env.VERCEL_URL || 'https://your-vercel-app.vercel.app';
+// Set webhook saat deploy (opsional, kita lakukan manual)
+const vercelUrl = process.env.VERCEL_URL || 'https://chat-gpt-<hash>.vercel.app';
 bot.setWebHook(`${vercelUrl}/api`).then(() => {
   console.log(`Webhook set to ${vercelUrl}/api`);
 }).catch(err => {
